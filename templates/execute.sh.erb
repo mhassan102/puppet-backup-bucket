@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Setting env
+cat > ~/.s3cfg <<EOF
+[default]
+access_key = <%= ENV['AWS_ACCESS_KEY_ID'] %>
+secret_key = <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
+EOF
+
+export src_bucket="<%= ENV['test_bucket'] %>"
+export dst_bucket="<%= ENV['backup_bucket'] %>"
+
+# install java
+add-apt-repository -y ppa:webupd8team/java
+apt-get update
+apt-get install -y openjdk-7-jdk
+
+# install git
+apt-get install -y git
+
+# get s3s3mirror tool
+git clone https://github.com/cobbzilla/s3s3mirror ~/s3s3mirror
+
+# Do a backup
+cd ~/s3s3mirror
+<% if @backup == 'Exact' %>
+echo "./s3s3mirror.sh --delete-removed $src_bucket $dst_bucket" >>/tmp/EXACT_BACKUP 2>&1
+./s3s3mirror.sh --delete-removed $src_bucket $dst_bucket >>/tmp/EXACT_BACKUP 2>&1
+<% else %>
+echo "./s3s3mirror.sh $src_bucket $dst_bucket" >>/tmp/INCREMENTAL_BACKUP 2>&1
+./s3s3mirror.sh $src_bucket $dst_bucket >>/tmp/INCREMENTAL_BACKUP 2>&1
+<% end %>
+
+# shutdown instance
+shutdown -h now
